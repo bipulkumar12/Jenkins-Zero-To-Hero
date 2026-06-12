@@ -20,15 +20,23 @@ pipeline {
       }
     }
     stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://3.80.134.192:9000"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-        }
-      }
+    environment {
+        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+        SONAR_URL = 'http://3.80.134.192:9000'
     }
+    steps {
+        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+            sh '''
+                java -version
+                cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                mvn sonar:sonar \
+                -Dsonar.login=$SONAR_AUTH_TOKEN \
+                -Dsonar.host.url=$SONAR_URL
+            '''
+        }
+    }
+}
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "bipulkumar12/ultimate-cicd:${BUILD_NUMBER}"
