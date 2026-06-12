@@ -6,34 +6,14 @@ args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
 }
 }
 
-```
+
 stages {
-
-    stage('Checkout') {
-        steps {
-            echo 'Checkout completed'
-        }
-    }
-
-    stage('Check Java') {
-        steps {
-            sh 'java -version'
-            sh 'mvn -version'
-        }
-    }
-
-    stage('Check Docker') {
-        steps {
-            sh 'which docker || true'
-            sh 'docker --version || true'
-        }
-    }
 
     stage('Build and Test') {
         steps {
             sh '''
-            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-            mvn clean package
+                cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                mvn clean package
             '''
         }
     }
@@ -42,23 +22,28 @@ stages {
         environment {
             SONAR_URL = 'http://3.80.134.192:9000'
         }
+
         steps {
             withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
                 sh '''
-                cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-                mvn sonar:sonar \
-                -Dsonar.login=$SONAR_AUTH_TOKEN \
-                -Dsonar.host.url=$SONAR_URL
+                    cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                    mvn sonar:sonar \
+                    -Dsonar.login=$SONAR_AUTH_TOKEN \
+                    -Dsonar.host.url=$SONAR_URL
                 '''
             }
         }
     }
 
     stage('Build Docker Image') {
+        environment {
+            DOCKER_IMAGE = "bipulkumar12/ultimate-cicd:${BUILD_NUMBER}"
+        }
+
         steps {
             sh '''
-            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-            docker build -t bipulkumar12/ultimate-cicd:${BUILD_NUMBER} .
+                cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                docker build -t ${DOCKER_IMAGE} .
             '''
         }
     }
